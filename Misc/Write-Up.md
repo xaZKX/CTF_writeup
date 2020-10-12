@@ -172,3 +172,175 @@
 
 - 得到高度i为479，转16进制为01DF。修改0000 0100为0000 01DF，保存。
 - 图片正常打开，即得flag。
+
+#### zip伪加密
+
+-  解压`.zip`文件，发现需要密码。
+
+- 先以关键字「CTF zip 伪加密」搜索，找到zip伪加密的原理（[CTF——MISC——zip伪加密总结](https://blog.csdn.net/vhkjhwbs/article/details/99851686)）
+
+  - zip伪加密是在**文件头的加密标志位做修改**，进而再打开文件时识被别为加密压缩包。
+  - 把 **压缩源文件目录区** 的 **全局方式位标记**  的 01 00 或 09 00 改为 00 00  就可以**去除**密码。
+
+- 在mac下使用「Hex Fiend」打开下载的`.zip`文件。
+
+  ![](images/zip1hex.png)
+
+- 压缩源文件数据区：
+  - **50 4B 03 04：这是头文件标记（0x04034b50）** 
+  - **14 00：解压文件所需 pkware 版本** 
+  - **09 00：全局方式位标记（有加密，00 00表示无加密）**
+
+- 将**09 00**改为**00 00**。
+-  再次解压，无需密码即可成功解压。解压出`flag.txt`，获得flag。
+
+#### LSB
+
+- 由题目：此题的flag应该是用LSB算法隐写在图片中。
+
+- 先将图片转化为灰度图，再将RGB通道分离。生成三通道的灰度图：`Blue.jpg`，`Red.jpg`，`Green.jpg`。
+
+  ```python
+  import cv2
+  import matplotlib.pyplot as plt
+  
+  img = cv2.imread('flag11.png')
+  
+  # 灰度图
+  img0 = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+  
+  cv2.namedWindow('figure1', 0)
+  cv2.resizeWindow('figure1', 960, 480)
+  cv2.imshow('figure1', img0)
+  
+  for col in ['Blue', "Green", 'Red']:
+      cv2.namedWindow(col, 0)
+      cv2.resizeWindow(col, 960, 480)
+  b, g, r = cv2.split(img)
+  
+  cv2.imwrite('Blue.jpg', b)
+  cv2.imwrite('Red.jpg', r)
+  cv2.imwrite('Green.jpg', g)
+  cv2.destroyAllWindows()
+  ```
+
+- 因为LSB是将原本10进制的像素转为8位2进制，将8位2进制的最后一位置0或者置1来隐写数据，所以要枚举所有像素，当该位像素最后一位不为0时，置为255的黑点。方法可以让像素值和0000 0001进行与运算。通过运算，如果隐写值为0则整个像素置0（白），如果隐写值为1则整个像素置为255（黑）。
+
+  ```python
+  # coding:utf-8
+  
+  from PIL import Image
+  img = Image.open('Blue.jpg') # Green.jpg && Red.jpg
+  width,height=img.size
+  for i in range(0,width):
+      for j in range(0,height):
+          tmp = img.getpixel((i,j))
+          if tmp&0x1 == 0:
+              img.putpixel((i,j),0)
+          else:
+              img.putpixel((i,j),255)
+  img.save('Bluelsb.jpg')
+  ```
+
+  ![](images/LSB1.png)
+
+- 发现这三张图上部分都有一些冗余，是隐写进来的图片信息。
+- 将数据提取出来并合并，是一张二维码，扫一扫即得flag。
+
+#### ningen
+
+- 使用「binwalk」分析图片。发现图片中藏着一个压缩包。
+
+  ![](images/ningen1.png)
+
+- 使用`binwalk -e`，提取zip压缩文件。提取出来`9721.zip ` 和`ningen.txt`两个文件。
+
+- 解压`9721.zip`，发现需要密码才可以解压。
+
+- 使用暴力破解解压密码：`fcrackzip -b -c1 -l 4 -u 1D7.zip`。（其中，-b 暴力破解模式 -c 指定掩码类型（a=a-z;1=0-9;!=特殊字符） -l 密码长度 -u 压缩文件名）
+
+   ![](images/ningen2.png)
+
+- 再次解压，输入密码，成功解压出txt文件，打开即得flag。
+
+#### 被嗅探的流量
+
+- 先使用「binwalk」对文件进行分析。发现里面藏着一个JPEG图片。
+
+  ![](images/xiutan1.png)
+
+- 使用wireshark对pcap包进行分析。
+
+  - 在过滤器中输入http，过滤出http包。可以看出上传了一个JPEG图片。
+
+    ![](images/xiutan2.png)
+
+- 右键数据包——>追踪流——>Http流。可以看到上传图片的内容，下滑查找，即可看到flag。
+
+  ![](images/xiutan3.png)
+
+#### 文件中的秘密
+
+- 先使用「binwalk」对文件进行分析。
+
+  ![](images/secret1.png)
+
+- 在mac下使用「Hex Fiend」打开下载的图片文件。发现图片中有Exif数据。
+
+  ![](images/secret2.png)
+
+- linux下安装exiftool，查看图片的Exif数据。（kali：`apt-get install exiftool`）
+
+  ```
+  root@kali:~# exiftool 图片中的秘密.jpeg
+  
+  ExifTool Version Number         : 11.16
+  File Name                       : 图片中的秘密.jpeg
+  Directory                       : .
+  File Size                       : 166 kB
+  File Modification Date/Time     : 2015:08:19 10:50:50+08:00
+  File Access Date/Time           : 2020:10:12 19:08:53+08:00
+  File Inode Change Date/Time     : 2020:10:12 19:08:53+08:00
+  File Permissions                : rwxrwx---
+  File Type                       : JPEG
+  File Type Extension             : jpg
+  MIME Type                       : image/jpeg
+  JFIF Version                    : 1.01
+  Resolution Unit                 : inches
+  X Resolution                    : 1
+  Y Resolution                    : 1
+  Exif Byte Order                 : Big-endian (Motorola, MM)
+  XP Comment                      : flag{870c5a72806115cb5439345d8b014396}
+  Padding                         : (Binary data 1948 bytes, use -b option to extract)
+  Image Width                     : 700
+  Image Height                    : 1167
+  Encoding Process                : Baseline DCT, Huffman coding
+  Bits Per Sample                 : 8
+  Color Components                : 3
+  Y Cb Cr Sub Sampling            : YCbCr4:2:0 (2 2)
+  Image Size                      : 700x1167
+  Megapixels                      : 0.817
+  ```
+
+- 可以找到flag。
+
+#### rar
+
+- linux下解压`.rar`文件。提示需要密码。
+
+  ```bash
+  apt-get install rar
+  unrar e dianli_jbctf_MISC_T10076_20150707_rar.rar
+  ```
+
+- linux下安装rarcrack，暴力破解rar密码。（kali：`apt-get install rarcrack`）
+
+  ```bash
+  # rarcrack 文件名 -threads 线程数 -type rar|zip|7z
+  rarcrack dianli_jbctf_MISC_T10076_20150707_rar.rar  --threads 4  --type rar
+  ```
+
+- 这个方法破解4位密码很慢，参考别人写好的WriteUp，使用工具`ARCHPR`暴力破解，得密码8795。
+
+- 再次解压，输入密码，即得flag。
+
