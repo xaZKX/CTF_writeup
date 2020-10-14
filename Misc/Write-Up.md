@@ -344,3 +344,77 @@
 
 - 再次解压，输入密码，即得flag。
 
+#### wireshark
+
+- 根据提示：管理员的密码即是答案。打开wireshark，过滤POST包：`http.request.method=="POST"`
+
+  ![](images/wireshark1.png)
+
+-  查看提交的表单数据。
+
+  ![](images/wireshark2.png)
+
+- password即为flag。
+
+#### 乌镇峰会种图
+
+- 先使用「binwalk」对图片进行分析。
+
+  ![](images/wu1.png)
+
+- 发现就是一个JPEG图片。在mac下使用「Hex Fiend」打开下载的图片文件。下滑查找是否含有flag。
+
+  ![](images/wu2.png)
+
+- 下拉到最后即得flag。
+
+#### 你竟然赶我走
+
+- 先使用「binwalk」对图片进行分析。
+
+  ![](images/gan1.png)
+
+- 发现就是一个JPEG图片。在mac下使用「Hex Fiend」打开下载的图片文件。下滑查找是否含有flag。
+
+  ![](images/gan2.png)
+
+- 下拉到最后即得flag。
+
+#### qr
+
+- 扫一扫二维码即得flag。
+
+#### 流量中的线索
+
+- 先使用「binwalk」对pcap包进行分析。
+
+  ![](images/xsuo1.png)
+
+- 使用wireshrak打开.pcap包，过滤http包。
+
+  ![](images/xsuo2.png)
+
+- 右键第三条数据包——>追踪流——>Http流。
+
+  ![](images/xsuo3.png)
+
+- 红框及以下数据是一段base64编码的数据。将这段数据保存到`1.txt`，解码。
+
+  ```python
+  import base64
+  f = open("1.txt")
+  s = ""
+  # 去掉回车
+  for line in f:
+      s += line.strip("\n")
+      
+  # base64解码
+  imgdata = base64.b64decode(s)
+  file = open('1.jpg','wb')
+  file.write(imgdata)
+  file.close()
+  ```
+
+- 打开`1.jpg`，即得flag。
+
+  ![1](images/xsuo4.png)
