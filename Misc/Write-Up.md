@@ -245,7 +245,18 @@
   ![](images/LSB1.png)
 
 - 发现这三张图上部分都有一些冗余，是隐写进来的图片信息。
-- 将数据提取出来并合并，是一张二维码，扫一扫即得flag。
+
+- 查看别人写好的Write_up，使用工具「Stegsolve」提取这三个LSB，合并保存。
+
+  ![](images/LSB2.png)
+
+- 保存下来的文件使用「Hex Fiend」打开，发现就是一张png图片。修改文件后缀名。
+
+  ![](images/LSB3.png)
+
+- 打开后是一张二维码，扫一扫即得flag。
+
+  ![](images/LSB4.png)
 
 #### ningen
 
@@ -384,7 +395,7 @@
 
 - 扫一扫二维码即得flag。
 
-#### 流量中的线索
+#### 数据包中的线索
 
 - 先使用「binwalk」对pcap包进行分析。
 
@@ -418,3 +429,50 @@
 - 打开`1.jpg`，即得flag。
 
   ![1](images/xsuo4.png)
+
+#### 基础破解
+
+- 根据提示，这是一个加密的rar压缩包。
+
+#### easycap
+
+- 使用wireshrak打开.pcap包，发现都是tcp数据包。
+
+- 随便一条数据包右键——>追踪流——>TCP流，即得flag。
+
+  ![](images/easy1.png)
+
+#### 镜子里的世界
+
+- 在mac下使用「Hex Fiend」打开图片，发现就是一张png图片。
+
+  ![image-20201015142754629](images/jingzi1.png)
+
+- 使用工具「Stegsolve」查看LSB，即得flag。
+
+  ![](images/jingzi2.png)
+
+#### 爱因斯坦
+
+- 先使用「binwalk」对图片进行分析。
+
+  ![](images/aiyin2.png)
+
+- 使用`binwalk -e`，提取zip压缩文件。提取出来`109B3.zip ` 和`flag.txt`两个文件。
+
+- 解压`109B3.zip `，发现需要密码才可以解压。
+
+- 使用暴力破解解压密码：`fcrackzip -b -c1 -l 4 -u 109B3.zip `。尝试4位密码长度，没有反应。
+
+- 使用「Hex Fiend」打开文件，猜测可能是zip伪加密。
+
+  ![](images/aiyin1.png)
+
+- 将0900改为0000，保存，再次解压，失败。
+
+- 查看别人写的Write_up，这里需要查看图片的Exif信息。
+
+  ![](images/aiyin3.png)
+
+- 使用上图红框中的`this_is_not_password`作为密码解压，即得flag。
+
