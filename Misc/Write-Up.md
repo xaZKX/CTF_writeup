@@ -476,3 +476,229 @@
 
 - 使用上图红框中的`this_is_not_password`作为密码解压，即得flag。
 
+#### 最简单的misc-y1ng
+
+- 使用「Hex Fiend」打开文件。
+
+  ![](images/y1ng1.png)
+
+- 看到「IHDR」，这是png图片的文件头数据块。
+
+- 直接在开头加上`89504E47`，让它恢复为一个png图片。
+
+  ![](images/y1ng2.png)
+
+- 打开图片，上面有一串字符。
+
+  ![](images/y1ng3.png)
+
+- 这个base16编码的字符，解码即得flag。
+
+  ```python
+  import base64 
+  s = "424A447B79316E677A756973687561697D"
+  decode = base64.b16decode(s)
+  print(decode)
+  ```
+
+#### A_Beautiful_Picture（类似大白）
+
+- 打开图片，提示损坏。
+
+  ![](images/beautiful1.png)
+
+- 使用「Hex Fiend」打开图片文件。
+
+  ![](images/beautiful2.png)
+
+- 其中
+
+  - 8950 4E47 是文件的格式png
+  - 0000 000D 说明IHDR头块长为13
+  - 4948 4452 IHDR标识
+  - 0000 03E8 图像的宽
+  - 0000 0384 图像的高
+
+  - C2 C1 43 B3  CRC校验和
+
+- 写脚本计算正确的图片高度。
+
+  ```python
+  import os
+  import binascii
+  import struct
+  
+  
+  misc = open("dabai.png","rb").read()
+  
+  for i in range(1024):
+      data = misc[12:20] +struct.pack('>i',i)+ misc[24:29]
+      crc32 = binascii.crc32(data) & 0xffffffff
+      if crc32 == 0xc2c143b3:
+          print(i)
+  ```
+
+- 得到高度i为1000，转16进制为03E8。修改0000 0384为0000 03E8，保存。
+
+- 图片正常打开，即得flag。
+
+  ![](images/beautiful3.png)
+
+#### 另一个世界
+
+- 使用「Hex Fiend」打开图片文件。
+
+  ![](images/another1.png)
+
+- 发现末尾有一个二进制串。数一下总共56个。
+
+- 八个为一组分开，ascii解码，即得flag。
+
+  |  二进制  | 十进制 | ASCII |
+  | :------: | :----: | :---: |
+  | 01101011 |  107   |   k   |
+  | 01101111 |  111   |   o   |
+  | 01100101 |  101   |   e   |
+  | 01101011 |  107   |   k   |
+  | 01101010 |  106   |   j   |
+  | 00110011 |   51   |   3   |
+  | 01110011 |  115   |   s   |
+
+#### 隐藏的钥匙
+
+- 使用「Hex Fiend」打开图片文件
+
+  ![](images/yincang1.png)
+
+- 仔细查看，在中上部分存在一个flag，是base64编码的，解码即得flag。
+
+  ```python
+  import base64 
+  s = "Mzc3Y2JhZGRhMWVjYTJmMmY3M2QzNjI3Nzc4MWYwMGE="
+  decode = base64.b64decode(s)
+  print(decode)
+  ```
+
+#### FLAG
+
+- 使用「Stegsolve」查看LSB，发现最低位隐写的时候是个zip文件。（注：50 4b 03 04 文件头标识）
+
+  ![](images/flag1.png)
+
+- 点击「Save bin」，将LSB保存为`1.zip`。
+
+- 解压`1.zip`。查看解压后的文件。
+
+  ![](images/flag2.png)
+
+- ELF文件直接`strings 1`查看可打印字符，即得flag。
+
+  ![](images/flag3.png)
+
+#### 小姐姐
+
+- 使用「binwalk」对图片进行分析。
+
+  ![](images/xiaojiejie1.png)
+
+- linux下安装exiftool，查看图片的Exif数据。（kali：`apt-get install exiftool`）
+
+  ```bash
+  root@kali:/# exiftool xiaojiejie.jpeg 
+  ExifTool Version Number         : 11.16
+  File Name                       : xiaojiejie.jpeg
+  Directory                       : .
+  File Size                       : 411 kB
+  File Modification Date/Time     : 2020:03:11 21:53:02+08:00
+  File Access Date/Time           : 2020:10:20 17:49:28+08:00
+  File Inode Change Date/Time     : 2020:10:20 17:42:17+08:00
+  File Permissions                : rwxrwx---
+  File Type                       : JPEG
+  File Type Extension             : jpg
+  MIME Type                       : image/jpeg
+  Exif Byte Order                 : Little-endian (Intel, II)
+  X Resolution                    : 300
+  Y Resolution                    : 300
+  Resolution Unit                 : inches
+  Software                        : www.meitu.com
+  Modify Date                     : 2018:01:04 01:36:27
+  Exposure Time                   : 1/160
+  F Number                        : 1.8
+  Sensitivity Type                : Recommended Exposure Index
+  Shutter Speed Value             : 1/160
+  Aperture Value                  : 1.8
+  Exposure Compensation           : 0
+  Max Aperture Value              : 1.4
+  Focal Length                    : 35.0 mm
+  Sub Sec Time                    : 33
+  Color Space                     : sRGB
+  Exif Image Width                : 2600
+  Exif Image Height               : 1736
+  Focal Plane X Resolution        : 1675.014984
+  Focal Plane Y Resolution        : 1675.014984
+  Focal Plane Resolution Unit     : cm
+  Sensing Method                  : One-chip color area
+  File Source                     : Digital Camera
+  Scene Type                      : Directly photographed
+  CFA Pattern                     : [Red,Green][Green,Blue]
+  Custom Rendered                 : Normal
+  Exposure Mode                   : Manual
+  Digital Zoom Ratio              : 1
+  Scene Capture Type              : Standard
+  Gain Control                    : Low gain up
+  Subject Distance Range          : Unknown
+  Serial Number                   : 9004241
+  Lens Info                       : 35mm f/1.4
+  Lens Model                      : 35.0 mm f/1.4
+  Compression                     : JPEG (old-style)
+  Thumbnail Offset                : 1034
+  Thumbnail Length                : 3522
+  Image Width                     : 2600
+  Image Height                    : 1736
+  Encoding Process                : Baseline DCT, Huffman coding
+  Bits Per Sample                 : 8
+  Color Components                : 3
+  Y Cb Cr Sub Sampling            : YCbCr4:4:4 (1 1)
+  Aperture                        : 1.8
+  Image Size                      : 2600x1736
+  Megapixels                      : 4.5
+  Scale Factor To 35 mm Equivalent: 2.3
+  Shutter Speed                   : 1/160
+  Modify Date                     : 2018:01:04 01:36:27.33
+  Thumbnail Image                 : (Binary data 3522 bytes, use -b option to extract)
+  Circle Of Confusion             : 0.013 mm
+  Field Of View                   : 25.0 deg
+  Focal Length                    : 35.0 mm (35 mm equivalent: 81.1 mm)
+  Hyperfocal Distance             : 52.51 m
+  ```
+
+- 发现没有什么额外信息，直接使用`strings`命令查看可打印字符，即得flag。（由于flag一般是由{}包含，所以以{}过滤）
+
+  ![](images/xiaojiejie2.png)
+
+#### EasyBaBa
+
+- 使用「binwalk」对图片进行分析。
+
+  ![](images/baba1.png)
+
+- 使用`foremost ezbb.jpg`分离图片中的隐藏文件。
+
+- 输出有一个`00000055.zip`文件，解压，出来是`里面都是出题人.jpg`。
+
+  ![](images/baba2.png)
+
+- 使用「Hex Fiend」打开文件，发现是一个`.avi`的视频文件。
+
+  ![](images/baba3.png)
+
+- 修改后缀名，打开，逐帧播放。
+
+  ![](images/baba4.png)
+
+- 在4s的位置可以看到有二维码。按顺序一共四张二维码，分别扫描。
+
+- 扫描出来：6167696E5F6C ，6F76655F59 ，424A447B696D ，316E677D
+
+- 两个一组先转化为10进制的ASCII，在转化为字符。组合即得flag。
+
